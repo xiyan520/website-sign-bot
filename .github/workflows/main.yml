@@ -1,0 +1,32 @@
+name: 网站自动签到
+
+on:
+  schedule:
+    # 每天中国时间凌晨00:05执行（UTC时间16:05，北京时间+8）
+    - cron: '5 16 * * *'
+  # 允许手动触发工作流
+  workflow_dispatch:
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v2
+        
+      - name: 设置Python环境
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: 执行签到脚本
+        env:
+          WEBSITE_COOKIE: ${{ secrets.WEBSITE_COOKIE }}
+          IYUU_TOKEN: ${{ secrets.IYUU_TOKEN }}
+        run: python sign.py
