@@ -2,7 +2,7 @@ name: Auto Sign In
 
 on:
   schedule:
-    - cron: '5 16 * * *'  # 每天UTC时间0点运行，即北京时间8点
+    - cron: '0 0 * * *'  # 每天UTC时间0点运行，即北京时间8点
   workflow_dispatch:      # 允许手动触发
 
 jobs:
@@ -21,24 +21,18 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install selenium requests
         pip install -r requirements.txt
         
-    - name: Install Chrome
+    - name: Setup Chrome and ChromeDriver
+      uses: browser-actions/setup-chrome@latest
+    
+    - name: Setup ChromeDriver
+      uses: nanasess/setup-chromedriver@master
+      
+    - name: Check Chrome and ChromeDriver versions
       run: |
-        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-        sudo apt-get update
-        sudo apt-get install -y google-chrome-stable
-        
-    - name: Install ChromeDriver
-      run: |
-        CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d. -f1)
-        CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-        curl -L -o chromedriver.zip "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
-        unzip chromedriver.zip
-        chmod +x chromedriver
-        sudo mv chromedriver /usr/local/bin/
+        google-chrome --version
+        chromedriver --version
         
     - name: Run sign-in script
       env:
