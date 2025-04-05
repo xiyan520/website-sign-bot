@@ -22,24 +22,15 @@ def auto_sign_in():
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0')
     
-    def send_iyuu_notification(title, content, image_path=None):
-        """发送IYUU通知，支持可选的图片附件"""
+    def send_iyuu_notification(title, content):
+        """发送IYUU通知"""
         try:
             params = {
                 "text": title,
                 "desp": content
             }
-            
-            if image_path and os.path.exists(image_path):
-                # 如果有图片路径且文件存在，则发送带图片的通知
-                files = {'image': open(image_path, 'rb')}
-                response = requests.post(iyuu_url, data=params, files=files)
-                print(f"IYUU通知（带图片）发送状态: {response.status_code}")
-            else:
-                # 否则只发送文本通知
-                response = requests.get(iyuu_url, params=params)
-                print(f"IYUU通知发送状态: {response.status_code}")
-                
+            response = requests.get(iyuu_url, params=params)
+            print(f"IYUU通知发送状态: {response.status_code}")
             return response.status_code == 200
         except Exception as e:
             print(f"发送IYUU通知时出错: {e}")
@@ -68,7 +59,6 @@ def auto_sign_in():
         sign_in_success = False
         sign_in_message = ""
         error_message = ""
-        screenshot_path = None
         
         # 等待"已阅"按钮加载，并点击
         try:
@@ -111,16 +101,6 @@ def auto_sign_in():
         # 等待一段时间，以便完成操作
         time.sleep(5)
         
-        # 如果失败，先尝试截图
-        if not sign_in_success:
-            try:
-                screenshot_path = "error_screenshot.png"
-                driver.save_screenshot(screenshot_path)
-                print(f"错误截图已保存至: {screenshot_path}")
-            except Exception as e:
-                print(f"保存截图时出错: {e}")
-                screenshot_path = None
-        
         # 发送通知
         if sign_in_success:
             send_iyuu_notification(
@@ -130,31 +110,27 @@ def auto_sign_in():
         else:
             send_iyuu_notification(
                 "网站签到失败", 
-                f"网站 nb.mcy002.org 签到失败\n时间：{time.strftime('%Y-%m-%d %H:%M:%S')}\n错误信息：{error_message}",
-                screenshot_path  # 传入截图路径
+                f"网站 nb.mcy002.org 签到失败\n时间：{time.strftime('%Y-%m-%d %H:%M:%S')}\n错误信息：{error_message}"
             )
         
     except Exception as e:
         error_message = f"程序运行过程中出错: {e}"
         print(error_message)
-        
-        # 出错时尝试截图
-        screenshot_path = None
-        try:
-            screenshot_path = "error_screenshot.png"
-            driver.save_screenshot(screenshot_path)
-            print(f"错误截图已保存至: {screenshot_path}")
-        except Exception as screenshot_error:
-            print(f"保存截图时出错: {screenshot_error}")
-        
-        # 发送带截图的错误通知
         send_iyuu_notification(
             "网站签到失败", 
-            f"网站 nb.mcy002.org 签到失败\n时间：{time.strftime('%Y-%m-%d %H:%M:%S')}\n错误信息：{error_message}",
-            screenshot_path  # 传入截图路径
+            f"网站 nb.mcy002.org 签到失败\n时间：{time.strftime('%Y-%m-%d %H:%M:%S')}\n错误信息：{error_message}"
         )
     
     finally:
+        # 尝试截图保存错误情况
+        try:
+            if not sign_in_success:
+                screenshot_path = "error_screenshot.png"
+                driver.save_screenshot(screenshot_path)
+                print(f"错误截图已保存至: {screenshot_path}")
+        except Exception as e:
+            print(f"保存截图时出错: {e}")
+            
         # 关闭浏览器
         try:
             driver.quit()
