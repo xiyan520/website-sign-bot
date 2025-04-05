@@ -57,6 +57,7 @@ def auto_sign_in():
         
         # 用于跟踪签到状态
         sign_in_success = False
+        sign_in_message = ""
         error_message = ""
         
         # 等待"已阅"按钮加载，并点击
@@ -78,8 +79,21 @@ def auto_sign_in():
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "#inn-nav__point-sign-daily .inn-nav__point-sign-daily__btn[title='签到']"))
             )
             qiandao_button.click()
-            print("已成功点击'签到'按钮，签到完成！")
-            sign_in_success = True
+            print("已点击'签到'按钮")
+            
+            # 等待签到结果信息出现
+            try:
+                print("等待签到结果信息...")
+                sign_message_elem = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "div.inn-sign-daily__msg__text"))
+                )
+                sign_in_message = sign_message_elem.text
+                print(f"获取到签到信息: {sign_in_message}")
+                sign_in_success = True
+            except Exception as e:
+                error_message = f"获取签到结果信息时出错: {e}"
+                print(error_message)
+                
         except Exception as e:
             error_message = f"点击'签到'按钮时出错: {e}"
             print(error_message)
@@ -91,7 +105,7 @@ def auto_sign_in():
         if sign_in_success:
             send_iyuu_notification(
                 "网站签到成功", 
-                f"网站 nb.mcy002.org 已成功签到\n时间：{time.strftime('%Y-%m-%d %H:%M:%S')}"
+                f"网站 nb.mcy002.org 已成功签到\n时间：{time.strftime('%Y-%m-%d %H:%M:%S')}\n签到信息：{sign_in_message}"
             )
         else:
             send_iyuu_notification(
@@ -108,6 +122,15 @@ def auto_sign_in():
         )
     
     finally:
+        # 尝试截图保存错误情况
+        try:
+            if not sign_in_success:
+                screenshot_path = "error_screenshot.png"
+                driver.save_screenshot(screenshot_path)
+                print(f"错误截图已保存至: {screenshot_path}")
+        except Exception as e:
+            print(f"保存截图时出错: {e}")
+            
         # 关闭浏览器
         try:
             driver.quit()
